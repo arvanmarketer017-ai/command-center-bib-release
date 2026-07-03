@@ -57,7 +57,14 @@ foreach ($botName in $old.bots.PSObject.Properties.Name) {
     Write-Host "Konversi: $key (chat_id target: $($bot.chat_id))"
 }
 
-$newData | ConvertTo-Json -Depth 5 | Set-Content -Path $NewFile -Encoding utf8
+# Set-Content -Encoding utf8 di Windows PowerShell 5.1 SELALU nulis BOM
+# (byte penanda tersembunyi) di awal file -- Notepad transparan soal ini
+# (kelihatan normal), tapi json.load() di Python (dipakai BIB) GAGAL parse
+# file ber-BOM dan errornya ditelan diam-diam oleh load_bots(), jadi
+# kelihatan seolah "tidak ada bot" padahal isinya benar. Makanya di sini
+# ditulis manual pakai UTF8Encoding(false) supaya tidak ada BOM sama sekali.
+$json = $newData | ConvertTo-Json -Depth 5
+[System.IO.File]::WriteAllText($NewFile, $json, (New-Object System.Text.UTF8Encoding $false))
 
 Write-Host ""
 Write-Host "Selesai. $count bot Telegram dikonversi ke:"
